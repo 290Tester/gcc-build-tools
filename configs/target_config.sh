@@ -50,8 +50,8 @@ function setup_default_config()
     "--disable-bootstrap"
     "--enable-languages=${enable_languages}"
     "--includedir=${INSTALL}/${TARGET}/include"
-    "--with-dynamic-linker=${GLIBC_SYSROOT}/lib/ld-linux-aarch64.so.1"
-    "--with-sysroot=${GLIBC_SYSROOT}"
+    "--with-dynamic-linker=/data/local/tmp/gnu/openkitty-arm64-gcc15/aarch64-openkitty-linux-gnu/lib/ld-linux-aarch64.so.1"
+    "--with-sysroot=/data/local/tmp/gnu/openkitty-arm64-gcc15/aarch64-openkitty-linux-gnu"
 )
 
 
