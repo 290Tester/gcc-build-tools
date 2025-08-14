@@ -2,9 +2,13 @@
 # shellcheck disable=SC2034
 
 function setup_common_urls() {
-    MPFR_BASE_URL="https://ftp.gnu.org/gnu/mpfr/"
-    GMP_BASE_URL="https://ftp.gnu.org/gnu/gmp/"
-    MPC_BASE_URL="https://ftp.gnu.org/gnu/mpc/"
+    # 1) 依赖库（MPFR / GMP / MPC）
+MPFR_BASE_URL="https://ftpmirror.gnu.org/gnu/mpfr/"
+GMP_BASE_URL="https://ftpmirror.gnu.org/gnu/gmp/"
+MPC_BASE_URL="https://ftpmirror.gnu.org/gnu/mpc/"
+
+
+
     ISL_BASE_URL="https://libisl.sourceforge.io/"
 }
 
@@ -12,13 +16,15 @@ function setup_common_urls_tar() {
 
     setup_common_urls
 
-    BINUTILS_BASE_URL="https://ftp.gnu.org/gnu/binutils/binutils-"
-    GCC_BASE_URL="https://ftp.gnu.org/gnu/gcc/"
-    GLIBC_BASE_URL="https://ftp.gnu.org/gnu/glibc/"
+    # 2) 主源码包（GCC / Binutils / GDB / GLIBC）
+BINUTILS_BASE_URL="https://ftpmirror.gnu.org/gnu/binutils/binutils-"
+GCC_BASE_URL="https://ftpmirror.gnu.org/gnu/gcc/"
+GLIBC_BASE_URL="https://ftpmirror.gnu.org/gnu/glibc/"
+GDB_BASE_URL="https://ftpmirror.gnu.org/gnu/gdb/"
     LINUX_BASE_URL="https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-"
     NEWLIB_BASE_URL="ftp://sourceware.org/pub/newlib/"
     AVRLIBC_BASE_URL="https://github.com/avrdudes/avr-libc/archive/refs/tags/"
-    GDB_BASE_URL="http://ftp.gnu.org/gnu/gdb/"
+    
     PICOLIBC_BASE_URL="https://github.com/keith-packard/picolibc/archive/"
     MINGW_BASE_URL="https://github.com/mingw-w64/mingw-w64/archive/refs/tags/"
     UCLIBC_NG_BASE_URL="https://downloads.uclibc-ng.org/releases/"
