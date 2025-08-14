@@ -285,8 +285,8 @@ function setup_environment() {
     BUILD_STATE_DIR="${ROOT}/state"
     # shellcheck disable=SC2034
     BUILD_DIR="${ROOT}/build_dir"
-    INSTALL_DIR="/opt/local"
-    INSTALL_DIR_NAME="cross-tool-${ARCH}-gcc${VERSION}"
+    INSTALL_DIR="/data/local/tmp/gnu/"
+    INSTALL_DIR_NAME="openkitty-${ARCH}-gcc${VERSION}"
     INSTALL="${INSTALL_DIR}/${INSTALL_DIR_NAME}"
 
     # Maybe not needed!?
