@@ -44,13 +44,16 @@ function setup_default_config()
     # targets and because of a new issue with isl-0.22:
     # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=92484
     GCC_BASE_CONFIG=(
-        "--target=${TARGET}"
-        "--prefix=${INSTALL}"
-        "--disable-nls"
-        "--disable-bootstrap"
-        "--enable-languages=${enable_languages}"
-        "--includedir=${INSTALL}/${TARGET}/include"
-    )
+    "--target=${TARGET}"
+    "--prefix=${INSTALL}"
+    "--disable-nls"
+    "--disable-bootstrap"
+    "--enable-languages=${enable_languages}"
+    "--includedir=${INSTALL}/${TARGET}/include"
+    "--with-dynamic-linker=${GLIBC_SYSROOT}/lib/ld-linux-aarch64.so.1"
+    "--with-sysroot=${GLIBC_SYSROOT}"
+)
+
 
     # Notes:
     # In case of a c only build, we need to specify "CXX=false" otherwise the build won't work.
