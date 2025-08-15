@@ -20,7 +20,10 @@ function config_arm64() {
     "${GCC_BASE_CONFIG[@]}"
     --with-sysroot="${INSTALL}/${TARGET}"
     --with-native-system-header-dir=/include
+    --with-dynamic-linker="${INSTALL}/${TARGET}/lib/ld-linux-aarch64.so.1"
 )
+
+
 
 
     
@@ -28,13 +31,13 @@ function config_arm64() {
         "${GLIBC_BASE_CONFIG[@]}"
     )
 
-    GCC_FINAL_CONFIGURATION=(
+GCC_FINAL_CONFIGURATION=(
     "${GCC_BASE_CONFIG[@]}"
     --includedir="${INSTALL}/${TARGET}/include"
     --with-sysroot="${INSTALL}/${TARGET}"
     --with-native-system-header-dir=/include
+    --with-dynamic-linker="${INSTALL}/${TARGET}/lib/ld-linux-aarch64.so.1"
 )
-
 
     GDB_CONFIGURATION=(
         "${GDB_BASE_CONFIG[@]}"
