@@ -17,17 +17,24 @@ function config_arm64() {
     )
 
     GCC_CONFIGURATION=(
-        "${GCC_BASE_CONFIG[@]}"
-    )
+    "${GCC_BASE_CONFIG[@]}"
+    --with-sysroot="${INSTALL}/${TARGET}"
+    --with-native-system-header-dir=/include
+)
+
+
     
     GLIBC_CONFIGURATION=(
         "${GLIBC_BASE_CONFIG[@]}"
     )
 
     GCC_FINAL_CONFIGURATION=(
-        "${GCC_BASE_CONFIG[@]}"
-        "--includedir=${INSTALL}/${TARGET}/include"
-    )
+    "${GCC_BASE_CONFIG[@]}"
+    --includedir="${INSTALL}/${TARGET}/include"
+    --with-sysroot="${INSTALL}/${TARGET}"
+    --with-native-system-header-dir=/include
+)
+
 
     GDB_CONFIGURATION=(
         "${GDB_BASE_CONFIG[@]}"
