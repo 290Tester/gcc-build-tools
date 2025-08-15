@@ -17,8 +17,7 @@ function build_gcc_stage_1() {
 
     mkdir -p "${BUILD_DIR}/build-gcc"
     cd "${BUILD_DIR}/build-gcc" || die "GCC build folder does not exist!"
-    LDFLAGS_FOR_BUILD="-Wl,-dynamic-linker=/data/local/tmp/gnu/openkitty-arm64-gcc15/aarch64-openkitty-linux-gnu/lib/ld-linux-aarch64.so.1" \
-call_cmd "${SOURCES_DIR}/gcc-${GCC}/configure" "${GCC_CONFIGURATION[@]}"
+    call_cmd "${SOURCES_DIR}/gcc-${GCC}/configure" "${GCC_CONFIGURATION[@]}"
     call_cmd make "${JOBS}" all-gcc || die "Error while building gcc stage1!" -n
     call_cmd make "${JOBS}" install-gcc || die "Error while installing gcc stage1!" -n
 
@@ -54,8 +53,7 @@ function build_gcc_final() {
 
     # We need to reconfigure if there is a final config available
     if [[ -n "${GCC_FINAL_CONFIGURATION[*]}" ]]; then
-       LDFLAGS_FOR_BUILD="-Wl,-dynamic-linker=/data/local/tmp/gnu/openkitty-arm64-gcc15/aarch64-openkitty-linux-gnu/lib/ld-linux-aarch64.so.1" \
-call_cmd "${SOURCES_DIR}/gcc-${GCC}/configure" "${GCC_FINAL_CONFIGURATION[@]}"
+       call_cmd "${SOURCES_DIR}/gcc-${GCC}/configure" "${GCC_FINAL_CONFIGURATION[@]}"
     fi
 
     call_cmd make "${JOBS}" all || die "Error while building gcc final" -n
