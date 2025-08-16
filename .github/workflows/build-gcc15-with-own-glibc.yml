@@ -1,9 +1,21 @@
+name: Build GCC 15 with pre-built glibc
 
 on:
   workflow_dispatch:
   push:
+    branches: [main]
 
-      - name: Configure & Build GCC  (完全静态)
+env:
+  PREFIX:   /data/local/tmp/gnu
+  SYSROOT:  /data/local/tmp/Android-tools/usr/ld
+  TARGET:   aarch64-linux-gnu
+  JOBS:     4
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04-arm
+    steps:
+     - name: Configure & Build GCC  (完全静态)
         run: |
           set -e
           WORK="$HOME/gcc-build"
