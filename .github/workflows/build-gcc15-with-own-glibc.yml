@@ -105,7 +105,10 @@ jobs:
           --enable-static \
           --with-dynamic-linker=/data/local/tmp/Android-tools/usr/ld/lib/ld-linux-aarch64.so.1 \
           LDFLAGS_FOR_BUILD="-Wl,-rpath,/data/local/tmp/Android-tools/usr/ld/lib" \
-          LDFLAGS_FOR_TARGET="-Wl,-rpath,/data/local/tmp/Android-tools/usr/ld/lib"
+          LDFLAGS_FOR_TARGET="-Wl,-rpath,/data/local/tmp/Android-tools/usr/ld/lib" \
+          ac_cv_c_compiler_gnu=yes \
+          ac_cv_env_CCC_set= \
+          cross_compiling=yes
 
       - name: Build & install
         run: |
