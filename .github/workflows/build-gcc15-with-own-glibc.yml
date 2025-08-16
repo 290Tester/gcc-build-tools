@@ -50,6 +50,7 @@ jobs:
       - name: Extract glibc
         run: |
           set -e
+          ln -s /data/local/tmp/Android-tools/usr/ld/ /data/local/tmp/Android-tools/usr/ld/usr/
           cd /data/local/tmp/Android-tools/usr/ld
           # 如果压缩包里自带 usr/ 就原地展开，否则直接解压
           tar -tzf /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ld.tar.gz | head -n1 | grep -q '^usr/' && HAS_USR=1 || HAS_USR=0
