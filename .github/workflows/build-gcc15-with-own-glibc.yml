@@ -45,6 +45,7 @@ jobs:
           cd /data/local/tmp/Android-tools/usr/ld
           # 直接解压到当前目录
           tar -xzf /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ld.tar.gz --checkpoint=.100
+          $SYSROOT/aarch64-unknown-linux-gnu/bin/ld --version
 
       # 软链 kernel headers
       - name: Link kernel headers
