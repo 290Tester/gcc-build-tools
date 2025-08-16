@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-22.04-arm
     steps:
      - name: Configure & Build GCC  (完全静态)
-        run: |
+       run: |
           set -e
           WORK="$HOME/gcc-build"
           rm -rf "$WORK"
