@@ -28,7 +28,7 @@ jobs:
             build-essential g++ make gawk bison flex texinfo gettext \
             git curl libgmp-dev libmpfr-dev libmpc-dev libisl-dev \
             zlib1g-dev pkg-config python3 \
-            linux-libc-dev-arm64-cross
+            linux-libc-dev-arm64-cross lld llvm
 
       #----------------------------------------------------------
       # 2. 准备目录并查看 tar 包结构
@@ -90,6 +90,7 @@ jobs:
           mkdir build-gcc && cd build-gcc
           ../gcc/configure \
             --prefix="$PREFIX" \
+            --with-ld=/usr/bin/ld.lld \
             --target="$TARGET" \
             --with-sysroot="$SYSROOT" \
             --enable-languages=c,c++,lto \
