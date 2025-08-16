@@ -58,7 +58,7 @@ jobs:
               tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools/usr/ld/usr --checkpoint=.100
           fi
           ls -l "$SYSROOT"/usr
-          /data/local/tmp/Android-tools/usr/ld/bin/ld --version
+          /data/local/tmp/Android-tools/usr/ld/aarch64-unknown-linux-gnu/bin/ld --version
       #----------------------------------------------------------
       # 4. 软链 kernel headers（不复制）
       #----------------------------------------------------------
@@ -86,7 +86,7 @@ jobs:
           mkdir build-gcc && cd build-gcc
           ../gcc/configure \
             --prefix="$PREFIX" \
-            --with-ld=/data/local/tmp/Android-tools/usr/ld/bin/ld \
+            --with-ld=/data/local/tmp/Android-tools/usr/ld/aarch64-unknown-linux-gnu/bin/ld \
             --target="$TARGET" \
             --with-sysroot="$SYSROOT" \
             --enable-languages=c,c++,lto \
