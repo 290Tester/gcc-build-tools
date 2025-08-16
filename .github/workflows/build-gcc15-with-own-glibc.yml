@@ -59,6 +59,7 @@ jobs:
               tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools/usr/ld/usr --checkpoint=.100
           fi
           ls -l "$SYSROOT"/usr
+          ls -l /data/local/tmp/Android-tools/usr/ld/lib/ld-linux-aarch64.so.1
       #----------------------------------------------------------
       # 4. 软链 kernel headers（不复制）
       #----------------------------------------------------------
