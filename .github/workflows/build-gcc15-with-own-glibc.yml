@@ -85,23 +85,26 @@ jobs:
           export PATH="/data/local/tmp/Android-tools/usr/ld/aarch64-unknown-linux-gnu/bin/:$PATH"
           mkdir build-gcc && cd build-gcc
           ../gcc/configure \
-            --prefix="$PREFIX" \
-            --target="$TARGET" \
-            --with-sysroot="$SYSROOT" \
-            --enable-languages=c,c++,lto \
-            --enable-threads=posix \
-            --enable-libgomp \
-            --enable-libssp \
-            --enable-libquadmath \
-            --enable-lto \
-            --enable-shared \
-            --disable-multilib \
-            --with-newlib \
-            --disable-nls \
-            --disable-bootstrap \
-            --disable-shared \
-            --enable-static \
-            --with-dynamic-linker=/data/local/tmp/Android-tools/usr/ld/lib/ld-linux-aarch64.so.1
+          --prefix="$PREFIX" \
+          --target="$TARGET" \
+          --with-sysroot="$SYSROOT" \
+          --enable-languages=c,c++,lto \
+          --enable-threads=posix \
+          --enable-libgomp \
+          --enable-libssp \
+          --enable-libquadmath \
+          --enable-lto \
+          --enable-shared \
+          --disable-multilib \
+          --with-newlib \
+          --disable-nls \
+          --disable-bootstrap \
+          --disable-shared \
+          --enable-static \
+          --with-dynamic-linker=/data/local/tmp/Android-tools/usr/ld/lib/ld-linux-aarch64.so.1 \
+          LDFLAGS_FOR_BUILD="-Wl,-rpath,/data/local/tmp/Android-tools/usr/ld/lib" \
+          LDFLAGS_FOR_TARGET="-Wl,-rpath,/data/local/tmp/Android-tools/usr/ld/lib"
+
       - name: Build & install
         run: |
           cd /data/local/tmp/build-gcc
