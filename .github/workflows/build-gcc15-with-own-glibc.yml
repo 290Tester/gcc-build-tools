@@ -70,7 +70,11 @@ jobs:
         run: |
           export PATH="$PREFIX/bin:$PATH"
           ld --version | head -n1
-
+      - name: Replace system ld with new binutils
+        run: |
+          sudo mv /usr/bin/ld /usr/bin/ld.2.38.bak
+          sudo ln -sf "$PREFIX/bin/ld" /usr/bin/ld
+          ld --version | head -n1
       - name: Build glibc
         run: |
           cd "$PREFIX"/src
