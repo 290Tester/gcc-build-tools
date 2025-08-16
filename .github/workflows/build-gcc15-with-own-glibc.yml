@@ -17,9 +17,7 @@ jobs:
       - name: Checkout workflow repo
         uses: actions/checkout@v4
 
-      #----------------------------------------------------------
-      # 1. 安装编译依赖
-      #----------------------------------------------------------
+      # 安装编译依赖
       - name: Install build deps
         run: |
           sudo apt-get update -qq
@@ -29,58 +27,41 @@ jobs:
             zlib1g-dev pkg-config python3 \
             linux-libc-dev-arm64-cross lld llvm
 
-      #----------------------------------------------------------
-      # 2. 准备目录
-      #----------------------------------------------------------
+      # 准备目录
       - name: Prepare workspace
         run: |
           sudo mkdir -p /data/local/tmp/Android-tools/usr/ld
           sudo chown -R $USER:$USER /data/local/tmp
 
-      #----------------------------------------------------------
-      # 3. 解压 binutils
-      #----------------------------------------------------------
+      # 解压 binutils
       - name: Extract binutils
         run: |
           tar -xzf binutils.tar.gz -C /data/local/tmp/Android-tools/usr/ld --checkpoint=.100
 
-      #----------------------------------------------------------
-      # 4. 解压 glibc（即 ld.tar.gz）
-      #----------------------------------------------------------
+      # 修复点：直接解压glibc，不再创建usr符号链接
       - name: Extract glibc
         run: |
           set -e
-          ln -s /data/local/tmp/Android-tools/usr/ld/ /data/local/tmp/Android-tools/usr/ld/usr/
           cd /data/local/tmp/Android-tools/usr/ld
-          # 如果压缩包里自带 usr/ 就原地展开，否则直接解压
-          tar -tzf /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ld.tar.gz | head -n1 | grep -q '^usr/' && HAS_USR=1 || HAS_USR=0
-          if [ "$HAS_USR" = "1" ]; then
-              tar -xzf /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ld.tar.gz --checkpoint=.100
-          else
-              tar -xzf /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ld.tar.gz --checkpoint=.100
-          fi
+          # 直接解压到当前目录
+          tar -xzf /home/runner/work/${{ github.event.repository.name }}/${{ github.event.repository.name }}/ld.tar.gz --checkpoint=.100
 
-      #----------------------------------------------------------
-      # 5. 软链 kernel headers
-      #----------------------------------------------------------
+      # 软链 kernel headers
       - name: Link kernel headers
         run: |
           K=/usr/aarch64-linux-gnu/include
+          [ ! -d "$SYSROOT/usr/include" ] && mkdir -p "$SYSROOT/usr/include"
           ln -sfn "$K/linux"       "$SYSROOT/usr/include/linux"
           ln -sfn "$K/asm"         "$SYSROOT/usr/include/asm"
           ln -sfn "$K/asm-generic" "$SYSROOT/usr/include/asm-generic"
 
-      #----------------------------------------------------------
-      # 6. 克隆 GCC 15
-      #----------------------------------------------------------
+      # 克隆 GCC 15
       - name: Clone GCC
         run: |
           cd /data/local/tmp
           git clone --depth=1 -b master git://gcc.gnu.org/git/gcc.git
 
-      #----------------------------------------------------------
-      # 7. 配置 & 构建
-      #----------------------------------------------------------
+      # 配置 & 构建
       - name: Configure GCC
         run: |
           cd /data/local/tmp
@@ -110,9 +91,7 @@ jobs:
           make -j"$JOBS"
           make install
 
-      #----------------------------------------------------------
-      # 8. 打包 & 上传
-      #----------------------------------------------------------
+      # 打包 & 上传
       - name: Package toolchain
         run: |
           cd /data/local/tmp
