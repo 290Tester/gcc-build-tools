@@ -6,7 +6,8 @@ on:
 
 env:
   PREFIX:   /data/local/tmp/gnu
-  SYSROOT:  /data/local/tmp/Android-tools/usr/ld   # 固定 sysroot 路径
+  SYSROOT:  /data/local/tmp/Android-tools/usr/ld
+  SYSROOT1:  /data/local/tmp/Android-tools/usr/ld/usr
   TARGET:   aarch64-linux-gnu
   JOBS:     4
 
@@ -35,6 +36,7 @@ jobs:
       - name: Prepare workspace
         run: |
           sudo mkdir -p "$SYSROOT"
+          sudo mkdir -p "$SYSROOT1"
           sudo chown -R $USER:$USER /data/local/tmp
 
       - name: Debug tarball layout
