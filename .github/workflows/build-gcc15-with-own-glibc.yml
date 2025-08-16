@@ -1,7 +1,18 @@
-on: [push, workflow_dispatch]
+name: Build GCC 15 with pre-built glibc
+
+on:
+  workflow_dispatch:
+  push:
+
+env:
+  PREFIX:   /data/local/tmp/gnu
+  SYSROOT:  /data/local/tmp/Android-tools/usr/ld
+  TARGET:   aarch64-linux-gnu
+  JOBS:     4
+
 jobs:
   build:
-    runs-on: ubuntu-22.04          # ← 换成 x86_64
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
 
@@ -9,17 +20,44 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y \
-            build-essential g++ g++-aarch64-linux-gnu \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
-            gawk bison flex texinfo gettext \
+            build-essential g++ gawk bison flex texinfo gettext \
             git curl libgmp-dev libmpfr-dev libmpc-dev libisl-dev \
             zlib1g-dev pkg-config python3 \
             linux-libc-dev-arm64-cross lld llvm
 
-       - name: Configure GCC
+      - name: Prepare workspace
+        run: |
+          sudo mkdir -p "$SYSROOT"
+          sudo chown -R $USER:$USER /data/local/tmp
+
+      - name: Extract glibc
         run: |
           set -e
+          TMPDIR="/data/local/tmp"
+          tar -tzf ld.tar.gz | head -n1 | grep -q '^usr/' && HAS_USR=1 || HAS_USR=0
+          if [ "$HAS_USR" = "1" ]; then
+              tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools
+          else
+              mkdir -p "$TMPDIR"/Android-tools/usr
+              tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools/usr/ld
+              tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools/usr/ld/usr
+          fi
+
+      - name: Kernel headers
+        run: |
+          K=/usr/aarch64-linux-gnu/include
+          ln -sfn "$K/linux"       "$SYSROOT/usr/include/linux"
+          ln -sfn "$K/asm"         "$SYSROOT/usr/include/asm"
+          ln -sfn "$K/asm-generic" "$SYSROOT/usr/include/asm-generic"
+
+      - name: Clone GCC
+        run: |
+          cd /data/local/tmp
+          git clone --depth=1 -b master git://gcc.gnu.org/git/gcc.git
+
+      - name: Configure GCC
+        run: |
+          cd /data/local/tmp
           export lt_cv_sys_max_cmd_len=32768
           export ac_cv_func_malloc_0_nonnull=yes
           export ac_cv_func_realloc_0_nonnull=yes
@@ -27,12 +65,12 @@ jobs:
           export ac_cv_prog_cc_cross=yes
           export cross_compiling=yes
           export cc_cv_works=no
+          export LD_LIBRARY_PATH="/data/local/tmp/Android-tools/usr/ld/lib:$LD_LIBRARY_PATH"
 
-          cd /data/local/tmp
-          rm -rf build-gcc                     # 保险：先删
+          rm -rf build-gcc
           mkdir build-gcc && cd build-gcc
           ../gcc/configure \
-            --build=x86_64-linux-gnu \
+            --build=aarch64-linux-gnu \
             --host=aarch64-linux-gnu \
             --target=aarch64-linux-gnu \
             --prefix="$PREFIX" \
@@ -51,12 +89,21 @@ jobs:
             --disable-shared \
             --enable-static \
             --with-dynamic-linker=/data/local/tmp/Android-tools/usr/ld/lib/ld-linux-aarch64.so.1 \
-            LDFLAGS_FOR_BUILD="-Wl,-rpath,/data/local/tmp/Android-tools/usr/ld/lib" \
-            LDFLAGS_FOR_TARGET="-Wl,-rpath,/data/local/tmp/Android-tools/usr/ld/lib"
-
+            LDFLAGS_FOR_BUILD="-Wl,-rpath,/data/local/tmp/Android-tools/usr/ld/lib -Wl,--dynamic-linker=/data/local/tmp/Android-tools/usr/ld/lib/ld-linux-aarch64.so.1" \
+            LDFLAGS_FOR_TARGET="-Wl,-rpath,/data/local/tmp/Android-tools/usr/ld/lib -Wl,--dynamic-linker=/data/local/tmp/Android-tools/usr/ld/lib/ld-linux-aarch64.so.1"
 
       - name: Build & install
         run: |
-          cd build-gcc
+          cd /data/local/tmp/build-gcc
           make -j"$JOBS"
           make install
+
+      - name: Package
+        run: |
+          cd /data/local/tmp
+          tar czf gcc15-with-prebuilt-glibc.tar.gz gnu/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gcc15-with-prebuilt-glibc
+          path: /data/local/tmp/gcc15-with-prebuilt-glibc.tar.gz
