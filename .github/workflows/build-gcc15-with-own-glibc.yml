@@ -41,19 +41,15 @@ jobs:
 
       - name: Debug tarball layout
         run: |
+          export TMPDIR="/data/local/tmp"
           ls -lh ld.tar.gz
-          tar -tzf ld.tar.gz | head -20
-
-      #----------------------------------------------------------
-      # 3. 解压 glibc（自动适配两种目录结构）
-      #----------------------------------------------------------
+          tar -xzf binutils.tar.gz -C "$TMPDIR"/Android-tools
       - name: Extract pre-built glibc
         run: |
           set -e
-          TMPDIR="/data/local/tmp"
+          export TMPDIR="/data/local/tmp"
           tar -tzf ld.tar.gz | head -n1 | grep -q '^usr/' && HAS_USR=1 || HAS_USR=0
           if [ "$HAS_USR" = "1" ]; then
-              # tarball 自带 usr/ -> 直接解压到 Android-tools
               tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools --checkpoint=.100
           else
               # tarball 只有 lib/ include/ ... -> 解压到 usr/ld
@@ -62,7 +58,7 @@ jobs:
               tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools/usr/ld/usr --checkpoint=.100
           fi
           ls -l "$SYSROOT"/usr
-
+          /data/local/tmp/Android-tools/usr/ld/bin/ld --version
       #----------------------------------------------------------
       # 4. 软链 kernel headers（不复制）
       #----------------------------------------------------------
@@ -90,7 +86,7 @@ jobs:
           mkdir build-gcc && cd build-gcc
           ../gcc/configure \
             --prefix="$PREFIX" \
-            --with-ld=/usr/bin/ld.lld \
+            --with-ld=/data/local/tmp/Android-tools/usr/ld/bin/ld \
             --target="$TARGET" \
             --with-sysroot="$SYSROOT" \
             --enable-languages=c,c++,lto \
