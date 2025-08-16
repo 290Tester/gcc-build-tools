@@ -85,7 +85,7 @@ jobs:
           export PATH="/data/local/tmp/Android-tools/usr/ld/aarch64-unknown-linux-gnu/bin/:$PATH"
           mkdir build-gcc && cd build-gcc
           ../gcc/configure \
-          --host=aarch64-linux-gnu \
+          --host=x86-linux-gnu \
           --build=aarch64-linux-gnu \
           --prefix="$PREFIX" \
           --target="$TARGET" \
@@ -107,7 +107,6 @@ jobs:
           LDFLAGS_FOR_BUILD="-Wl,-rpath,/data/local/tmp/Android-tools/usr/ld/lib" \
           LDFLAGS_FOR_TARGET="-Wl,-rpath,/data/local/tmp/Android-tools/usr/ld/lib" \
           ac_cv_c_compiler_gnu=yes \
-          ac_cv_env_CCC_set= \
           cross_compiling=yes
 
       - name: Build & install
