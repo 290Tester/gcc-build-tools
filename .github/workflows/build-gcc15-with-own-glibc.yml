@@ -34,7 +34,7 @@ jobs:
       #----------------------------------------------------------
       - name: Prepare workspace
         run: |
-          sudo mkdir -p /data/local/tmp
+          sudo mkdir -p "$SYSROOT"
           sudo chown -R $USER:$USER /data/local/tmp
 
       - name: Debug tarball layout
