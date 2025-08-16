@@ -65,13 +65,13 @@ jobs:
       # 配置 & 构建
       - name: Configure GCC
         run: |
+          export PATH=$PATH:/data/local/tmp/Android-tools/usr/ld/aarch64-unknown-linux-gnu/bin/
           cd /data/local/tmp
           mkdir build-gcc && cd build-gcc
           ../gcc/configure \
             --prefix="$PREFIX" \
             --target="$TARGET" \
             --with-sysroot="$SYSROOT" \
-            --with-ld="$SYSROOT/aarch64-unknown-linux-gnu/bin/ld" \
             --enable-languages=c,c++,lto \
             --enable-threads=posix \
             --enable-libgomp \
