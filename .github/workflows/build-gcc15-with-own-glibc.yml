@@ -31,8 +31,10 @@ jobs:
 
       - name: Extract pre-built glibc
         run: |
+          sudo mkdir -p /data/local/tmp/Android-tools/usr
+          sudo chown -R $USER:$USER /data/local/tmp/Android-tools
           tar -xzf ld.tar.gz -C /data/local/tmp/Android-tools/usr/
-          ls $SYSROOT/lib/ld-linux-aarch64.so.*
+          ls -l /data/local/tmp/Android-tools/usr/ld/lib/ld-linux-aarch64.so.* || true
       - name: Clone GCC
         run: |
           cd /data/local/tmp
