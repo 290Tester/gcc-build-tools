@@ -5,60 +5,77 @@ on:
   push:
 
 env:
-  PREFIX: /data/local/tmp/gnu
-  SYSROOT: /data/local/tmp/Android-tools/usr/ld
-  TARGET: aarch64-linux-gnu
-  JOBS: 4
+  PREFIX:   /data/local/tmp/gnu
+  SYSROOT:  /data/local/tmp/Android-tools/usr/ld
+  TARGET:   aarch64-linux-gnu
+  JOBS:     4
 
 jobs:
   build:
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-22.04-arm   # GitHub 免费 ARM 机
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
+      #----------------------------------------------------------
+      # 1. 安装编译依赖
+      #----------------------------------------------------------
       - name: Install build deps
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y \
             build-essential g++ make gawk bison flex texinfo gettext \
             git curl libgmp-dev libmpfr-dev libmpc-dev libisl-dev \
-            zlib1g-dev pkg-config python3
+            zlib1g-dev pkg-config python3 \
+            linux-libc-dev-arm64-cross  # 提供 aarch64 kernel headers
 
-      - name: Setup directories
+      #----------------------------------------------------------
+      # 2. 准备目录 & 解压 glibc
+      #----------------------------------------------------------
+      - name: Setup dirs
         run: |
-          sudo mkdir -p /data/local/tmp
+          sudo mkdir -p "$SYSROOT"
           sudo chown -R $USER:$USER /data/local/tmp
-      - uses: actions/checkout@v4
-      - name: Debug ld.tar.gz 是否存在
-        run: |
-          ls -lh ld.tar.gz || { echo "❌ ld.tar.gz 不存在"; exit 1; }
-          file ld.tar.gz
-      - name: Extract & set fixed SYSROOT
-        run: |
-          TOOLS_DIR="/data/local/tmp/Android-tools/usr/ld"
-          sudo mkdir -p "$TOOLS_DIR"
-          sudo chown -R $USER:$USER "$TOOLS_DIR"
-          echo "正在解压 ld.tar.gz..."
-          tar -xzvf ld.tar.gz -C "$TOOLS_DIR" --checkpoint=.100
-          REAL_SYSROOT="$TOOLS_DIR"
-          ls -l "$REAL_SYSROOT"/
-          if [ -d "$REAL_SYSROOT" ]; then
-          ln -sfn "$REAL_SYSROOT" "$REAL_SYSROOT/usr" || echo "符号链接创建失败（可能已存在）"
-          fi
 
+      - name: Debug ld.tar.gz
+        run: |
+          ls -lh ld.tar.gz
+          file  ld.tar.gz
+
+      - name: Extract pre-built glibc
+        run: |
+          tar -xzf ld.tar.gz -C "$SYSROOT" --checkpoint=.100
+          ls -l "$SYSROOT/usr"/
+
+      #----------------------------------------------------------
+      # 3. 补 kernel headers（软链，不复制）
+      #----------------------------------------------------------
+      - name: Link kernel headers
+        run: |
+          K=/usr/aarch64-linux-gnu/include
+          ln -sfn "$K/linux"       "$SYSROOT/usr/include/linux"
+          ln -sfn "$K/asm"         "$SYSROOT/usr/include/asm"
+          ln -sfn "$K/asm-generic" "$SYSROOT/usr/include/asm-generic"
+
+      #----------------------------------------------------------
+      # 4. 克隆最新 GCC 15 源码
+      #----------------------------------------------------------
       - name: Clone GCC
         run: |
           cd /data/local/tmp
           git clone --depth=1 -b master git://gcc.gnu.org/git/gcc.git
 
-      - name: Build GCC
+      #----------------------------------------------------------
+      # 5. 配置 & 编译
+      #----------------------------------------------------------
+      - name: Configure GCC
         run: |
           cd /data/local/tmp
           mkdir build-gcc && cd build-gcc
           ../gcc/configure \
-            --prefix=$PREFIX \
-            --target=$TARGET \
-            --with-sysroot=$SYSROOT \
+            --prefix="$PREFIX" \
+            --target="$TARGET" \
+            --with-sysroot="$SYSROOT" \
             --enable-languages=c,c++,lto \
             --enable-threads=posix \
             --enable-libgomp \
@@ -66,10 +83,20 @@ jobs:
             --enable-libquadmath \
             --enable-lto \
             --enable-shared \
-            --disable-multilib
-          make -j$JOBS
+            --disable-multilib \
+            --with-newlib \
+            --disable-nls \
+            --disable-bootstrap
+
+      - name: Build & install
+        run: |
+          cd /data/local/tmp/build-gcc
+          make -j"$JOBS"
           make install
 
+      #----------------------------------------------------------
+      # 6. 打包 & 上传
+      #----------------------------------------------------------
       - name: Package toolchain
         run: |
           cd /data/local/tmp
