@@ -28,7 +28,11 @@ jobs:
         run: |
           sudo mkdir -p /data/local/tmp
           sudo chown -R $USER:$USER /data/local/tmp
-
+      - uses: actions/checkout@v4
+      - name: Debug ld.tar.gz 是否存在
+        run: |
+          ls -lh ld.tar.gz || { echo "❌ ld.tar.gz 不存在"; exit 1; }
+          file ld.tar.gz
       - name: Extract pre-built glibc
         run: |
           sudo mkdir -p /data/local/tmp/Android-tools/usr
