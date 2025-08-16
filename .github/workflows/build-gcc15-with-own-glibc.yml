@@ -34,22 +34,14 @@ jobs:
         run: |
           set -e
           TMPDIR="/data/local/tmp"
+          mkdir -p "$TMPDIR"/Android-tools/usr/ld
           tar -tzf ld.tar.gz | head -n1 | grep -q '^usr/' && HAS_USR=1 || HAS_USR=0
           if [ "$HAS_USR" = "1" ]; then
               tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools
           else
-              mkdir -p "$TMPDIR"/Android-tools/usr
               tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools/usr/ld
-              tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools/usr/ld/usr
+              ln -sfn . "$TMPDIR"/Android-tools/usr/ld/usr
           fi
-
-      - name: Kernel headers
-        run: |
-          K=/usr/aarch64-linux-gnu/include
-          ln -sfn "$K/linux"       "$SYSROOT/usr/include/linux"
-          ln -sfn "$K/asm"         "$SYSROOT/usr/include/asm"
-          ln -sfn "$K/asm-generic" "$SYSROOT/usr/include/asm-generic"
-
       - name: Clone GCC
         run: |
           cd /data/local/tmp
