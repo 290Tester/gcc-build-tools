@@ -1,123 +1,50 @@
-name: Build GCC 15 + glibc natively on ARM64
+name: Build GCC 15 with pre-built glibc
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
 
 env:
   PREFIX: /data/local/tmp/gnu
+  SYSROOT: /data/local/tmp/Android-tools/usr/ld
   TARGET: aarch64-linux-gnu
   JOBS: 4
-  LINUX_VER: 6.10.5
-  DEBIAN_FRONTEND: noninteractive
 
 jobs:
   build:
     runs-on: ubuntu-22.04-arm
     steps:
-      - name: Free disk
-        run: |
-          sudo rm -rf /opt/hostedtoolcache /usr/local/lib/android /usr/share/dotnet
-          sudo apt-get clean
+      - uses: actions/checkout@v4
 
       - name: Install build deps
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y \
             build-essential g++ make gawk bison flex texinfo gettext \
-            git rsync wget curl libtool autoconf automake autopoint \
-            libgmp-dev libmpfr-dev libmpc-dev libisl-dev zlib1g-dev \
-            libssl-dev libz-dev pkg-config python3
+            git curl libgmp-dev libmpfr-dev libmpc-dev libisl-dev \
+            zlib1g-dev pkg-config python3
 
-      - name: Setup workspace
+      - name: Setup directories
         run: |
-          sudo mkdir -p "$PREFIX"
-          sudo chown -R $USER:$USER "$PREFIX"
-          mkdir -p "$PREFIX"/src
+          sudo mkdir -p /data/local/tmp
+          sudo chown -R $USER:$USER /data/local/tmp
 
-      - name: Download kernel source
+      - name: Extract pre-built glibc
         run: |
-          cd "$PREFIX"/src
-          curl -L https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${LINUX_VER}.tar.xz | tar -xJf -
-          ln -sf linux-${LINUX_VER} linux
+          tar -xzf ld.tar.gz -C /data/local/tmp/Android-tools/usr/
+          ls $SYSROOT/lib/ld-linux-aarch64.so.*
+      - name: Clone GCC
+        run: |
+          cd /data/local/tmp
+          git clone --depth=1 -b master git://gcc.gnu.org/git/gcc.git
 
-      - name: Install kernel headers
+      - name: Build GCC
         run: |
-          cd "$PREFIX"/src/linux
-          make ARCH=arm64 INSTALL_HDR_PATH="$PREFIX"/$TARGET/usr headers_install
-
-      - name: Clone sources
-        run: |
-          cd "$PREFIX"/src
-          git clone --depth=1 --single-branch -b master git://sourceware.org/git/binutils-gdb.git binutils
-          git clone --depth=1 --single-branch -b master git://sourceware.org/git/glibc.git
-          git clone --depth=1 --single-branch -b master git://gcc.gnu.org/git/gcc.git
-
-      - name: Build binutils
-        run: |
-          cd "$PREFIX"/src
-          mkdir build-binutils && cd build-binutils
-          ../binutils/configure \
-            --prefix="$PREFIX" \
-            --target=$TARGET \
-            --disable-multilib \
-            --disable-nls
-          make -j$JOBS
-          make install
-
-      - name: Verify new ld is visible
-        run: |
-          export PATH="$PREFIX/bin:$PATH"
-          ld --version | head -n1
-      - name: Replace system ld with new binutils
-        run: |
-          sudo mv /usr/bin/ld /usr/bin/ld.2.38.bak
-          sudo ln -sf "$PREFIX/bin/ld" /usr/bin/ld
-          ld --version | head -n1
-      - name: Build glibc
-        run: |
-          cd "$PREFIX"/src
-          mkdir build-glibc && cd build-glibc
-          export PATH="$PREFIX/bin:$PATH"   # 关键：优先用新 ld
-          ../glibc/configure \
-            --prefix="$PREFIX"/$TARGET \
-            --host=$TARGET \
-            --build=$(gcc -dumpmachine) \
-            --with-headers="$PREFIX"/$TARGET/usr/include \
-            --disable-multilib \
-            --disable-werror \
-            libc_cv_forced_unwind=yes
-          make -j$JOBS
-          make install
-
-      - name: Bootstrap GCC (C only)
-        run: |
-          cd "$PREFIX"/src
-          mkdir build-gcc-stage1 && cd build-gcc-stage1
-          export PATH="$PREFIX/bin:$PATH"
+          cd /data/local/tmp
+          mkdir build-gcc && cd build-gcc
           ../gcc/configure \
-            --prefix="$PREFIX" \
+            --prefix=$PREFIX \
             --target=$TARGET \
-            --with-sysroot="$PREFIX"/$TARGET \
-            --enable-languages=c \
-            --disable-libsanitizer \
-            --disable-multilib \
-            --disable-nls \
-            --disable-bootstrap
-          make -j$JOBS all-gcc
-          make install-gcc
-
-      - name: Final GCC (C/C++/LTO/OMP/SSP)
-        run: |
-          cd "$PREFIX"/src
-          rm -rf build-gcc-final
-          mkdir build-gcc-final && cd build-gcc-final
-          export PATH="$PREFIX/bin:$PATH"
-          ../gcc/configure \
-            --prefix="$PREFIX" \
-            --target=$TARGET \
-            --with-sysroot="$PREFIX"/$TARGET \
+            --with-sysroot=$SYSROOT \
             --enable-languages=c,c++,lto \
             --enable-threads=posix \
             --enable-libgomp \
@@ -129,14 +56,12 @@ jobs:
           make -j$JOBS
           make install
 
-      - name: Strip & package
+      - name: Package toolchain
         run: |
-          find "$PREFIX" -type f  $ -name '*.a' -o -name '*.so*' $ -exec strip --strip-debug {} + || true
-          cd "$(dirname "$PREFIX")"
-          tar czf gcc15-aarch64-native.tar.gz gnu/
+          cd /data/local/tmp
+          tar czf gcc15-with-prebuilt-glibc.tar.gz gnu/
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: gcc15-aarch64-native
-          path: /data/local/tmp/gcc15-aarch64-native.tar.gz
+          name: gcc15-with-prebuilt-glibc
+          path: /data/local/tmp/gcc15-with-prebuilt-glibc.tar.gz
