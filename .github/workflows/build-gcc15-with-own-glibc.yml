@@ -66,6 +66,7 @@ jobs:
       - name: Configure GCC
         run: |
           export PATH=$PATH:/data/local/tmp/Android-tools/usr/ld/aarch64-unknown-linux-gnu/bin/
+          ld --version
           cd /data/local/tmp
           mkdir build-gcc && cd build-gcc
           ../gcc/configure \
