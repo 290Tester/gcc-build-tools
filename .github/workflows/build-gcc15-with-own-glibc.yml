@@ -1,3 +1,4 @@
+on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-22.04          # ← 换成 x86_64
