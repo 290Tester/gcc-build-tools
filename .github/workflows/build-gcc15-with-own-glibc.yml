@@ -59,6 +59,7 @@ jobs:
               # tarball 只有 lib/ include/ ... -> 解压到 usr/ld
               mkdir -p "$TMPDIR"/Android-tools/usr
               tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools/usr/ld --checkpoint=.100
+              tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools/usr/ld/usr --checkpoint=.100
           fi
           ls -l "$SYSROOT"/usr
 
