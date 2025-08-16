@@ -1,4 +1,4 @@
-name: Build GCC 15 with pre-built glibc
+
 on:
   workflow_dispatch:
   push:
