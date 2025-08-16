@@ -1,0 +1,139 @@
+name: Build GCC 15 + glibc for AArch64 (cross)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+env:
+  PREFIX: /data/local/tmp/gnu
+  TARGET: aarch64-linux-gnu
+  JOBS: 2
+  LINUX_VER: 6.10.5   # 可改
+  DEBIAN_FRONTEND: noninteractive
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Free disk
+        run: |
+          sudo rm -rf /opt/hostedtoolcache /usr/local/lib/android /usr/share/dotnet
+          sudo apt-get clean
+
+      - name: Install build deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            build-essential g++ make gawk bison flex texinfo gettext \
+            git rsync wget curl libtool autoconf automake autopoint \
+            libgmp-dev libmpfr-dev libmpc-dev libisl-dev zlib1g-dev \
+            libssl-dev libz-dev pkg-config
+
+      - name: Setup prefix
+        run: |
+          sudo mkdir -p "$PREFIX"
+          sudo chown -R $USER:$USER "$PREFIX"
+          mkdir -p "$PREFIX"/src
+
+      - name: Clone / download sources
+        run: |
+          cd "$PREFIX"/src
+          git clone --depth=1 --single-branch -b master git://gcc.gnu.org/git/gcc.git
+          git clone --depth=1 --single-branch -b master git://sourceware.org/git/glibc.git
+          git clone --depth=1 --single-branch -b master git://sourceware.org/git/binutils-gdb.git binutils
+          wget -q https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$LINUX_VER.tar.xz
+          tar -xf linux-$LINUX_VER.tar.xz
+
+      - name: Build binutils
+        run: |
+          cd "$PREFIX"/src
+          mkdir build-binutils && cd build-binutils
+          ../binutils/configure \
+            --prefix="$PREFIX" \
+            --target=$TARGET \
+            --with-sysroot="$PREFIX"/$TARGET \
+            --disable-multilib \
+            --disable-nls
+          make -j$JOBS
+          make install
+
+      - name: Install kernel headers
+        run: |
+          cd "$PREFIX"/src/linux-$LINUX_VER
+          make ARCH=arm64 INSTALL_HDR_PATH="$PREFIX"/$TARGET/usr headers_install
+
+      - name: Build glibc headers & startup
+        run: |
+          cd "$PREFIX"/src
+          mkdir build-glibc && cd build-glibc
+          ../glibc/configure \
+            --prefix="$PREFIX"/$TARGET \
+            --host=$TARGET \
+            --build=$(gcc -dumpmachine) \
+            --target=$TARGET \
+            --with-headers="$PREFIX"/$TARGET/usr/include \
+            --disable-multilib \
+            --disable-werror \
+            libc_cv_forced_unwind=yes
+          make -j$JOBS install-headers
+          make -j$JOBS csu/subdir_lib
+          install csu/crt*.o "$PREFIX"/$TARGET/lib
+          $TARGET-gcc -nostdlib -nostartfiles -shared -x c /dev/null \
+            -o "$PREFIX"/$TARGET/lib/libc.so
+          touch "$PREFIX"/$TARGET/include/gnu/stubs.h
+
+      - name: Bootstrap GCC (C only)
+        run: |
+          cd "$PREFIX"/src
+          mkdir build-gcc-stage1 && cd build-gcc-stage1
+          ../gcc/configure \
+            --prefix="$PREFIX" \
+            --target=$TARGET \
+            --with-sysroot="$PREFIX"/$TARGET \
+            --enable-languages=c \
+            --disable-libsanitizer \
+            --disable-multilib \
+            --disable-nls \
+            --disable-bootstrap
+          make -j$JOBS all-gcc
+          make install-gcc
+
+      - name: Finish glibc
+        run: |
+          cd "$PREFIX"/src/build-glibc
+          make -j$JOBS
+          make install
+
+      - name: Final GCC (C/C++/LTO/OMP/SSP)
+        run: |
+          cd "$PREFIX"/src
+          rm -rf build-gcc-final
+          mkdir build-gcc-final && cd build-gcc-final
+          ../gcc/configure \
+            --prefix="$PREFIX" \
+            --target=$TARGET \
+            --with-sysroot="$PREFIX"/$TARGET \
+            --enable-languages=c,c++,lto \
+            --enable-threads=posix \
+            --enable-libgomp \
+            --enable-libssp \
+            --enable-libquadmath \
+            --enable-lto \
+            --enable-shared \
+            --disable-multilib \
+            --disable-bootstrap
+          make -j$JOBS
+          make install
+
+      - name: Strip & package
+        run: |
+          find "$PREFIX" -type f  $ -name '*.a' -o -name '*.so*' $ -exec strip --strip-debug {} + || true
+          cd "$(dirname "$PREFIX")"
+          tar czf gcc15-aarch64.tar.gz gnu/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcc15-aarch64-toolchain
+          path: /data/local/tmp/gcc15-aarch64.tar.gz
