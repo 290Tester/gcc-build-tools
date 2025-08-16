@@ -33,12 +33,14 @@ jobs:
         run: |
           ls -lh ld.tar.gz || { echo "❌ ld.tar.gz 不存在"; exit 1; }
           file ld.tar.gz
-      - name: Extract pre-built glibc
+      - name: Extract & locate real SYSROOT
         run: |
-          sudo mkdir -p /data/local/tmp/Android-tools/usr
+          sudo mkdir -p /data/local/tmp/Android-tools
           sudo chown -R $USER:$USER /data/local/tmp/Android-tools
-          tar -xzf ld.tar.gz -C /data/local/tmp/Android-tools/usr/
-          ls -l /data/local/tmp/Android-tools/usr/ld/lib/ld-linux-aarch64.so.* || true
+          tar -xzf ld.tar.gz -C /data/local/tmp/Android-tools
+          REAL_SYSROOT=$(find /data/local/tmp/Android-tools -name 'ld-linux-aarch64.so.*' -printf '%h\n' | head -n1)
+          echo "REAL_SYSROOT=$REAL_SYSROOT" >> $GITHUB_ENV
+          ls -l "$REAL_SYSROOT"/ld-linux-aarch64.so.*
       - name: Clone GCC
         run: |
           cd /data/local/tmp
