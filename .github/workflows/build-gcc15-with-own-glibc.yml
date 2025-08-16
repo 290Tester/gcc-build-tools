@@ -17,7 +17,7 @@ jobs:
             zlib1g-dev pkg-config python3 \
             linux-libc-dev-arm64-cross lld llvm
 
-            - name: Configure GCC
+       - name: Configure GCC
         run: |
           set -e
           export lt_cv_sys_max_cmd_len=32768
