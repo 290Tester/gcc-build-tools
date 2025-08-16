@@ -7,19 +7,18 @@ on:
 env:
   PREFIX:   /data/local/tmp/gnu
   SYSROOT:  /data/local/tmp/Android-tools/usr/ld
-  SYSROOT1:  /data/local/tmp/Android-tools/usr/ld/usr
   TARGET:   aarch64-linux-gnu
   JOBS:     4
 
 jobs:
   build:
-    runs-on: ubuntu-22.04-arm   # GitHub 原生 ARM 机
+    runs-on: ubuntu-22.04-arm
     steps:
       - name: Checkout workflow repo
         uses: actions/checkout@v4
 
       #----------------------------------------------------------
-      # 1. 安装编译依赖 + aarch64 kernel headers
+      # 1. 安装编译依赖
       #----------------------------------------------------------
       - name: Install build deps
         run: |
@@ -31,36 +30,37 @@ jobs:
             linux-libc-dev-arm64-cross lld llvm
 
       #----------------------------------------------------------
-      # 2. 准备目录并查看 tar 包结构
+      # 2. 准备目录
       #----------------------------------------------------------
       - name: Prepare workspace
         run: |
-          sudo mkdir -p "$SYSROOT"
-          sudo mkdir -p "$SYSROOT1"
+          sudo mkdir -p /data/local/tmp/Android-tools/usr/ld
           sudo chown -R $USER:$USER /data/local/tmp
 
-      - name: Debug tarball layout
+      #----------------------------------------------------------
+      # 3. 解压 binutils
+      #----------------------------------------------------------
+      - name: Extract binutils
         run: |
-          export TMPDIR="/data/local/tmp"
-          ls -lh ld.tar.gz
-          tar -xzf binutils.tar.gz -C "$TMPDIR"/Android-tools
-      - name: Extract pre-built glibc
+          tar -xzf binutils.tar.gz -C /data/local/tmp/Android-tools/usr/ld --checkpoint=.100
+
+      #----------------------------------------------------------
+      # 4. 解压 glibc
+      #----------------------------------------------------------
+      - name: Extract glibc
         run: |
           set -e
-          export TMPDIR="/data/local/tmp"
-          tar -tzf ld.tar.gz | head -n1 | grep -q '^usr/' && HAS_USR=1 || HAS_USR=0
+          cd /data/local/tmp/Android-tools/usr/ld
+          tar -tzf glibc.tar.gz | head -n1 | grep -q '^usr/' && HAS_USR=1 || HAS_USR=0
           if [ "$HAS_USR" = "1" ]; then
-              tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools --checkpoint=.100
+              tar -xzf glibc.tar.gz --checkpoint=.100
           else
-              # tarball 只有 lib/ include/ ... -> 解压到 usr/ld
-              mkdir -p "$TMPDIR"/Android-tools/usr
-              tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools/usr/ld --checkpoint=.100
-              tar -xzf ld.tar.gz -C "$TMPDIR"/Android-tools/usr/ld/usr --checkpoint=.100
+              # 只有 lib/ include/ ... 时直接解压到当前目录
+              tar -xzf glibc.tar.gz --checkpoint=.100
           fi
-          ls -l "$SYSROOT"/usr
-          /data/local/tmp/Android-tools/usr/ld/aarch64-unknown-linux-gnu/bin/ld --version
+
       #----------------------------------------------------------
-      # 4. 软链 kernel headers（不复制）
+      # 5. 软链 kernel headers
       #----------------------------------------------------------
       - name: Link kernel headers
         run: |
@@ -70,7 +70,7 @@ jobs:
           ln -sfn "$K/asm-generic" "$SYSROOT/usr/include/asm-generic"
 
       #----------------------------------------------------------
-      # 5. 克隆 GCC 15 源码
+      # 6. 克隆 GCC 15
       #----------------------------------------------------------
       - name: Clone GCC
         run: |
@@ -78,7 +78,7 @@ jobs:
           git clone --depth=1 -b master git://gcc.gnu.org/git/gcc.git
 
       #----------------------------------------------------------
-      # 6. 配置 & 构建
+      # 7. 配置 & 构建
       #----------------------------------------------------------
       - name: Configure GCC
         run: |
@@ -86,16 +86,15 @@ jobs:
           mkdir build-gcc && cd build-gcc
           ../gcc/configure \
             --prefix="$PREFIX" \
-            --with-ld=/data/local/tmp/Android-tools/usr/ld/aarch64-unknown-linux-gnu/bin/ld \
             --target="$TARGET" \
             --with-sysroot="$SYSROOT" \
+            --with-ld="$SYSROOT/aarch64-unknown-linux-gnu/bin/ld" \
             --enable-languages=c,c++,lto \
             --enable-threads=posix \
             --enable-libgomp \
             --enable-libssp \
             --enable-libquadmath \
             --enable-lto \
-            --enable-shared \
             --disable-multilib \
             --with-newlib \
             --disable-nls \
@@ -111,7 +110,7 @@ jobs:
           make install
 
       #----------------------------------------------------------
-      # 7. 打包 & 上传成品
+      # 8. 打包 & 上传
       #----------------------------------------------------------
       - name: Package toolchain
         run: |
