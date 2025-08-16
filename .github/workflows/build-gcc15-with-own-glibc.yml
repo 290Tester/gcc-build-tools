@@ -35,21 +35,21 @@ jobs:
           file ld.tar.gz
       - name: Extract & set fixed SYSROOT
         run: |
-    TOOLS_DIR="/data/local/tmp/Android-tools/usr/ld"
-    sudo mkdir -p "$TOOLS_DIR"
-    sudo chown -R $USER:$USER "$TOOLS_DIR"
-    echo "正在解压 ld.tar.gz..."
-    tar -xzvf ld.tar.gz -C "$TOOLS_DIR" --checkpoint=.100
-    REAL_SYSROOT="$TOOLS_DIR/usr/ld"
-    echo "REAL_SYSROOT=$REAL_SYSROOT" >> $GITHUB_ENV
-    if [ ! -d "$REAL_SYSROOT" ]; then
-      echo "::error::目录 $REAL_SYSROOT 不存在！"
-      exit 1
-    fi
-    ls -l "$REAL_SYSROOT"/
-    if [ -d "$REAL_SYSROOT" ]; then
-      ln -sfn "$REAL_SYSROOT" "$REAL_SYSROOT/usr" || echo "符号链接创建失败（可能已存在）"
-    fi
+          TOOLS_DIR="/data/local/tmp/Android-tools/usr/ld"
+          sudo mkdir -p "$TOOLS_DIR"
+          sudo chown -R $USER:$USER "$TOOLS_DIR"
+          echo "正在解压 ld.tar.gz..."
+          tar -xzvf ld.tar.gz -C "$TOOLS_DIR" --checkpoint=.100
+          REAL_SYSROOT="$TOOLS_DIR/usr/ld"
+          echo "REAL_SYSROOT=$REAL_SYSROOT" >> $GITHUB_ENV
+          if [ ! -d "$REAL_SYSROOT" ]; then
+          echo "::error::目录 $REAL_SYSROOT 不存在！"
+          exit 1
+          fi
+          ls -l "$REAL_SYSROOT"/
+          if [ -d "$REAL_SYSROOT" ]; then
+          ln -sfn "$REAL_SYSROOT" "$REAL_SYSROOT/usr" || echo "符号链接创建失败（可能已存在）"
+          fi
       - name: Clone GCC
         run: |
           cd /data/local/tmp
