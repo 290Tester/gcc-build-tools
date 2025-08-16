@@ -1,4 +1,4 @@
-name: Build GCC 15 + glibc for AArch64 (cross)
+name: Build GCC 15 + glibc natively on ARM64
 
 on:
   workflow_dispatch:
@@ -9,11 +9,12 @@ env:
   PREFIX: /data/local/tmp/gnu
   TARGET: aarch64-linux-gnu
   JOBS: 4
+  LINUX_VER: 6.10.5
   DEBIAN_FRONTEND: noninteractive
 
 jobs:
   build:
-    runs-on: ubuntu-22.04-arm
+    runs-on: ubuntu-22.04-arm   # GitHub 官方 ARM64 runner（已灰度）
     steps:
       - name: Free disk
         run: |
@@ -29,20 +30,29 @@ jobs:
             libgmp-dev libmpfr-dev libmpc-dev libisl-dev zlib1g-dev \
             libssl-dev libz-dev pkg-config
 
-      - name: Setup prefix
+      - name: Setup workspace
         run: |
           sudo mkdir -p "$PREFIX"
           sudo chown -R $USER:$USER "$PREFIX"
           mkdir -p "$PREFIX"/src
 
-      - name: Clone / download sources
+      - name: Download kernel source (headers)
         run: |
           cd "$PREFIX"/src
-          git clone --depth=1 --single-branch -b master git://gcc.gnu.org/git/gcc.git
-          git clone --depth=1 --single-branch -b master git://sourceware.org/git/glibc.git
+          curl -L https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-${LINUX_VER}.tar.xz | tar -xJf -
+          ln -sf linux-${LINUX_VER} linux
+
+      - name: Install kernel headers
+        run: |
+          cd "$PREFIX"/src/linux
+          make ARCH=arm64 INSTALL_HDR_PATH="$PREFIX"/$TARGET/usr headers_install
+
+      - name: Clone toolchain sources
+        run: |
+          cd "$PREFIX"/src
           git clone --depth=1 --single-branch -b master git://sourceware.org/git/binutils-gdb.git binutils
-          wget -q https://cdn.kernel.org/pub/linux/kernel/v6.x/linux-$LINUX_VER.tar.xz
-          tar -xf linux-$LINUX_VER.tar.xz
+          git clone --depth=1 --single-branch -b master git://sourceware.org/git/glibc.git
+          git clone --depth=1 --single-branch -b master git://gcc.gnu.org/git/gcc.git
 
       - name: Build binutils
         run: |
@@ -51,18 +61,12 @@ jobs:
           ../binutils/configure \
             --prefix="$PREFIX" \
             --target=$TARGET \
-            --with-sysroot="$PREFIX"/$TARGET \
             --disable-multilib \
             --disable-nls
           make -j$JOBS
           make install
 
-      - name: Install kernel headers
-        run: |
-          cd "$PREFIX"/src/linux-$LINUX_VER
-          make ARCH=arm64 INSTALL_HDR_PATH="$PREFIX"/$TARGET/usr headers_install
-
-      - name: Build glibc headers & startup
+      - name: Build glibc (headers + crt)
         run: |
           cd "$PREFIX"/src
           mkdir build-glibc && cd build-glibc
@@ -70,7 +74,6 @@ jobs:
             --prefix="$PREFIX"/$TARGET \
             --host=$TARGET \
             --build=$(gcc -dumpmachine) \
-            --target=$TARGET \
             --with-headers="$PREFIX"/$TARGET/usr/include \
             --disable-multilib \
             --disable-werror \
@@ -120,8 +123,7 @@ jobs:
             --enable-libquadmath \
             --enable-lto \
             --enable-shared \
-            --disable-multilib \
-            --disable-bootstrap
+            --disable-multilib
           make -j$JOBS
           make install
 
@@ -129,10 +131,10 @@ jobs:
         run: |
           find "$PREFIX" -type f  $ -name '*.a' -o -name '*.so*' $ -exec strip --strip-debug {} + || true
           cd "$(dirname "$PREFIX")"
-          tar czf gcc15-aarch64.tar.gz gnu/
+          tar czf gcc15-aarch64-native.tar.gz gnu/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: gcc15-aarch64-toolchain
-          path: /data/local/tmp/gcc15-aarch64.tar.gz
+          name: gcc15-aarch64-native
+          path: /data/local/tmp/gcc15-aarch64-native.tar.gz
