@@ -58,8 +58,6 @@ jobs:
           export cross_compiling=yes
           export cc_cv_works=no
           export LD_LIBRARY_PATH="/data/local/tmp/Android-tools/usr/ld/lib:$LD_LIBRARY_PATH"
-
-          rm -rf build-gcc
           mkdir build-gcc && cd build-gcc
           ../gcc/configure \
             --build=aarch64-linux-gnu \
