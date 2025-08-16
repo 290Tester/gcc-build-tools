@@ -105,7 +105,7 @@ jobs:
             --disable-bootstrap \
             --disable-shared \
             --enable-static \
-            
+            --with-dynamic-linker=/data/local/tmp/Android-tools/usr/ld/lib/ld-linux-aarch64.so.1
 
       - name: Build & install
         run: |
